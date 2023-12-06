@@ -20,7 +20,9 @@ use yii\web\HttpException;
  */
 class User extends \common\models\User {
 
-	use \common\traits\ApiModelTrait;
+	//use \common\traits\ApiModelTrait;
+
+    public $access_token;
 
 	public function fields() {
 		return [
@@ -31,6 +33,16 @@ class User extends \common\models\User {
 		return [
 		];
 	}
+    public function rules()
+    {
+        return [
+            // name, email, subject и body атрибуты обязательны
+            [['email', 'username', 'surname', 'status', 'phone'], 'safe', 'on' => self::SCENARIO_UPDATE],
+            // атрибут email должен быть правильным email адресом
+            ['email', 'email'],
+            [['email', 'username', 'password'], 'required', 'on' => self::SCENARIO_CREATE],
+        ];
+    }
 
 	/**
 	 * Создание пользователя
@@ -47,6 +59,7 @@ class User extends \common\models\User {
 			throw new HttpException(404, 'Такой пользователь уже есть');
 		}
 		$user = new parent();
+        $user->scenario = User::SCENARIO_CREATE;
 		$user->patronymic = '';
 		$user->temporary_pass = '';
 		foreach (['email', 'username', 'password'] as $fld) {

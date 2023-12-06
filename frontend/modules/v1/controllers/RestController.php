@@ -20,6 +20,7 @@ class RestController extends ActiveController {
 		$actions = parent::actions();
 		$actions['create']['class'] = 'frontend\modules\v1\rest\CreateAction';
 		$actions['delete']['class'] = 'frontend\modules\v1\rest\DeleteAction';
+		$actions['update']['class'] = 'frontend\modules\v1\rest\UpdateStudentAction';
 		return $actions;
 	}
 

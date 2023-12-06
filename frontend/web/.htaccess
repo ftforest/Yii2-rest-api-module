@@ -1,0 +1,8 @@
+RewriteEngine on
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . index.php
+
+#RewriteRule ^(.*)$ /index.php?r=v1%2Fuser/?id=$1
+
+#RewriteRule ^(.*)$ /index.php?path=$1 [NC,L,QSA]

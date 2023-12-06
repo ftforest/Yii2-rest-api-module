@@ -29,6 +29,13 @@ class User extends ActiveRecord implements IdentityInterface
     const STATUS_INACTIVE = 9;
     const STATUS_ACTIVE = 10;
 
+    public $patronymic;
+    public $temporary_pass;
+
+    const SCENARIO_AUTHORIZATION = 'authorization';
+    const SCENARIO_UPDATE = 'update';
+    const SCENARIO_CREATE = 'create';
+
 
     /**
      * {@inheritdoc}
@@ -72,7 +79,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public static function findIdentityByAccessToken($token, $type = null)
     {
-        throw new NotSupportedException('"findIdentityByAccessToken" is not implemented.');
+        return static::findOne(['access_token' => $token]);
     }
 
     /**
@@ -84,6 +91,16 @@ class User extends ActiveRecord implements IdentityInterface
     public static function findByUsername($username)
     {
         return static::findOne(['username' => $username, 'status' => self::STATUS_ACTIVE]);
+    }
+    /**
+     * Finds user by email
+     *
+     * @param string $email
+     * @return static|null
+     */
+    public static function findByEmail($email)
+    {
+        return static::findOne(['email' => $email, 'status' => self::STATUS_ACTIVE]);
     }
 
     /**
@@ -210,4 +227,20 @@ class User extends ActiveRecord implements IdentityInterface
     {
         $this->password_reset_token = null;
     }
+
+    public function generateAccessToken($expireInSeconds = 86400)
+    {
+        $this->access_token = Yii::$app->security->generateRandomString() . '_' . (time() + $expireInSeconds);
+    }
+
+    public function scenarios()
+    {
+        $scenarios = parent::scenarios();
+        $scenarios[self::SCENARIO_AUTHORIZATION] = ['email', 'password']; // поля, которые должны валидироваться при сценарии 'authorization'
+        $scenarios[self::SCENARIO_UPDATE] = ['email', 'password', 'username', 'surname', 'status', 'phone']; // поля, которые должны валидироваться при сценарии обновления данных пользователя
+        $scenarios[self::SCENARIO_CREATE] = ['username', 'email', 'password']; // поля, которые должны валидироваться при сценарии создания пользователя
+        return $scenarios;
+    }
+
+
 }

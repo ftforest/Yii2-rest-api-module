@@ -17,7 +17,6 @@ class UserController extends RestController {
 			'class' => HttpBearerAuth::class,
 			'except' => ['options'],
 		];
-
 		return $behaviors;
 	}
 
@@ -142,6 +141,51 @@ class UserController extends RestController {
 		throw new \yii\web\HttpException(404, 'No entries found with this query string');
 	}
 
+    /**
+     *
+     * @OA\Put(path="/v1/user/{id}",
+     *     tags={"Пользователи (user)"},
+     *     summary="Редактирование пользователя",
+     *	   @OA\Parameter(name="id", in="path", description="Идентификатор", required=true),
+     *     @OA\Response(
+     *         response = 200,
+     * 		   description = "OK",
+     *         @OA\Schema(ref = "#/components/schemas/User")
+     *     ),
+     *     @OA\Response(
+     *         response = 404,
+     * 		   description = "Not found",
+     *         @OA\Schema(ref = "#/components/schemas/User")
+     *     ),
+     *		security={{"bearerAuth":{}}}
+     * )
+     */
+    public function actionUpdate($id) {
+        $model = User::find()->where(['id' => $id])->one();
+
+        if (!$model) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        }
+
+        $model->scenario = User::SCENARIO_UPDATE;
+        $model->load(Yii::$app->getRequest()->getBodyParams(), '');
+
+        if ($model->save()) {
+            Yii::$app->response->setStatusCode(200);
+            return [
+                'message' => 'User updated successfully',
+                'data' => $model,
+            ];
+        } else {
+            Yii::$app->response->setStatusCode(400);
+            return [
+                'error' => 'Failed to update user',
+                'errors' => $model->errors,
+            ];
+        }
+        throw new \yii\web\HttpException(404, 'No entries found with this query string');
+    }
+
 	/**
 	 * Checks the privilege of the current user.
 	 *
@@ -151,7 +195,7 @@ class UserController extends RestController {
 	 * @throws ForbiddenHttpException if the user does not have access
 	 */
 	public function checkAccess($action, $model = null, $params = []) {
-		if ($action === 'create' || $action === 'delete' || $action === 'view' || $action === 'index') {
+		if ($action === 'create' || $action === 'delete'  || $action === 'update' || $action === 'view' || $action === 'index') {
 			if (\Yii::$app->user->isGuest) {
 				throw new ForbiddenHttpException("Authorization required");
 			}

@@ -58,3 +58,152 @@ frontend
 vendor/                  contains dependent 3rd-party packages
 environments/            contains environment-based overrides
 ```
+### Вопросы
+
+[frontend/modules/v1/models/User.php](frontend/modules/v1/models/User.php)
+
+$user->patronymic = '';
+
+$user->temporary_pass = '';
+
+### То что сделал
+
+[localhost/frontend/config/main.php](localhost/frontend/config/main.php)
+```php
+    'modules' => [
+        'v1' => [
+            'class' => 'frontend\modules\v1\Module',
+        ],
+    ],
+    'components' => [
+        'urlManager' => [
+            'enablePrettyUrl' => true,
+            'showScriptName' => false,
+            'enableStrictParsing' => false,
+            'rules' => [
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'controller' => ['site'],
+                ],
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'controller' => ['v1/user'],
+                ],
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'controller' => ['v1/auth'],
+                ],
+            ],
+        ],
+        'request' => [
+            'csrfParam' => '_csrf-frontend',
+            /*'parsers' => [
+                'application/json' => 'yiiwebJsonParser',
+            ]*/
+        ],
+```
+
+[frontend/modules/v1/controllers/RestController.php](frontend/modules/v1/controllers/RestController.php)
+
+```php
+        public function actions() {
+		$actions = parent::actions();
+		$actions['create']['class'] = 'frontend\modules\v1\rest\CreateAction';
+		$actions['delete']['class'] = 'frontend\modules\v1\rest\DeleteAction';
+		// добавлено обновление пользователя
+		$actions['update']['class'] = 'frontend\modules\v1\rest\UpdateStudentAction';
+		return $actions;
+	}
+
+```
+
+[frontend/modules/v1/controllers/UserController.php](frontend/modules/v1/controllers/UserController.php)
+
+```php
+/**
+     *
+     * @OA\Put(path="/v1/user/{id}",
+     *     tags={"Пользователи (user)"},
+     *     summary="Редактирование пользователя",
+     *	   @OA\Parameter(name="id", in="path", description="Идентификатор", required=true),
+     *     @OA\Response(
+     *         response = 200,
+     * 		   description = "OK",
+     *         @OA\Schema(ref = "#/components/schemas/User")
+     *     ),
+     *     @OA\Response(
+     *         response = 404,
+     * 		   description = "Not found",
+     *         @OA\Schema(ref = "#/components/schemas/User")
+     *     ),
+     *		security={{"bearerAuth":{}}}
+     * )
+     */
+    public function actionUpdate($id) {
+        $model = User::find()->where(['id' => $id])->one();
+
+        if (!$model) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        }
+
+        $model->scenario = User::SCENARIO_UPDATE;
+        $model->load(Yii::$app->getRequest()->getBodyParams(), '');
+
+        if ($model->save()) {
+            Yii::$app->response->setStatusCode(200);
+            return [
+                'message' => 'User updated successfully',
+                'data' => $model,
+            ];
+        } else {
+            Yii::$app->response->setStatusCode(400);
+            return [
+                'error' => 'Failed to update user',
+                'errors' => $model->errors,
+            ];
+        }
+        throw new \yii\web\HttpException(404, 'No entries found with this query string');
+    }
+```
+
+[common/models/User.php](common/models/User.php)
+
+```php
+    public $patronymic;
+    public $temporary_pass;
+
+    const SCENARIO_AUTHORIZATION = 'authorization';
+    const SCENARIO_UPDATE = 'update';
+    const SCENARIO_CREATE = 'create';
+    ...
+    public static function findIdentityByAccessToken($token, $type = null)
+    {
+        return static::findOne(['access_token' => $token]);
+    }
+    ...
+    /**
+     * Finds user by email
+     *
+     * @param string $email
+     * @return static|null
+     */
+    public static function findByEmail($email)
+    {
+        return static::findOne(['email' => $email, 'status' => self::STATUS_ACTIVE]);
+    }
+    ...
+    public function generateAccessToken($expireInSeconds = 86400)
+    {
+        $this->access_token = Yii::$app->security->generateRandomString() . '_' . (time() + $expireInSeconds);
+    }
+
+    public function scenarios()
+    {
+        $scenarios = parent::scenarios();
+        $scenarios[self::SCENARIO_AUTHORIZATION] = ['email', 'password']; // поля, которые должны валидироваться при сценарии 'authorization'
+        $scenarios[self::SCENARIO_UPDATE] = ['email', 'password', 'username', 'surname', 'status', 'phone']; // поля, которые должны валидироваться при сценарии обновления данных пользователя
+        $scenarios[self::SCENARIO_CREATE] = ['username', 'email', 'password']; // поля, которые должны валидироваться при сценарии создания пользователя
+        return $scenarios;
+    }
+
+```

@@ -2,7 +2,7 @@
 
 namespace frontend\modules\v1\models;
 
-use backend\models\rbac;
+//use backend\models\rbac;
 use Yii;
 use yii\base\Model;
 use common\models\User;
@@ -76,7 +76,7 @@ class Auth extends Model {
 			\Yii::$app->user->login($user);
 
 			if (!Yii::$app->user->can($user->type)) {
-				rbac::setRole($user->type, $user->id);
+				//rbac::setRole($user->type, $user->id);
 			}
 
 			$user->save();
