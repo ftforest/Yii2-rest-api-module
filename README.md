@@ -68,6 +68,8 @@ $user->temporary_pass = '';
 
 ### То что сделал
 
+localhost/docs - задание и постмен коллекция
+
 [localhost/frontend/config/main.php](localhost/frontend/config/main.php)
 ```php
     'modules' => [
